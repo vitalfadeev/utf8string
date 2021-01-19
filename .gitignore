@@ -1,0 +1,15 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/utf8string
+utf8string.so
+utf8string.dylib
+utf8string.dll
+utf8string.a
+utf8string.lib
+utf8string-test-*
+*.exe
+*.o
+*.obj
+*.lst

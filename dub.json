@@ -1,0 +1,8 @@
+{
+    "authors"     : [ "vital" ],
+    "copyright"   : "Copyright © 2021, vital",
+    "description" : "A minimal D application.",
+    "license"     : "proprietary",
+    "name"        : "utf8string",
+    "targetType"  : "sourceLibrary"
+}
