@@ -582,34 +582,35 @@ version ( Win64 )
         if ( ( s[0] & 0b1111_1000 ) == 0b1111_0000 && ( s[0] <= 0b1111_0100 ) ) 
         {
             dc = ( cast( dchar ) ( s[0] & 0b0000_0111 ) << 18 ) |
-                  ( cast( dchar ) ( s[1] & 0b0011_1111 ) << 12 ) |
-                  ( cast( dchar ) ( s[2] & 0b0011_1111 ) <<  6 ) |
-                  ( cast( dchar ) ( s[3] & 0b0011_1111 ) <<  0 );
+                 ( cast( dchar ) ( s[1] & 0b0011_1111 ) << 12 ) |
+                 ( cast( dchar ) ( s[2] & 0b0011_1111 ) <<  6 ) |
+                 ( cast( dchar ) ( s[3] & 0b0011_1111 ) <<  0 );
             next = s + 4;
         } 
         else 
         // invalid
         {
-            dc = 0; // invalid
-            next = s + 1; // skip this byte
+            dc = '�';     // invalid
+            next = s + 1;  // skip this byte
         }
 
         
         if ( dc >= 0b1101_1000_0000_0000 && dc <= 0b1101_1111_1111_1111 )
         {
-            dc = 0; // surrogate half
+            dc = '�';  // surrogate half
         }
 
         return next;
     }
 
-    // Primitive decoding 2
+
+    // Primitive decoding
     char* decode( char* s, ref dchar dc )
     {
         byte  a = *s;    // register A
         byte  b;         // register B
         short ax;        // register AX
-        short eb;        // register EB
+        short bx;        // register EB
         int   eax;       // register EAX
 
         // 1-Byte: 0xxxxxxx
@@ -641,7 +642,7 @@ version ( Win64 )
 
         // 3-Byte: 1110xxxx 10xxxxxx 10xxxxxx
         a <<= 1;
-        if ( a > 0 )    // highest bit is 0. May be Sign flag (SF) == 0 ( after arithmetic )
+        if ( a > 0 )   // highest bit is 0. May be Sign flag (SF) == 0 ( after arithmetic )
         {
             ax = a;    // register AX
             ax <<= 9;  // 00000000_0xxxx... => xxxx0000_00000000
@@ -649,9 +650,9 @@ version ( Win64 )
             s += 1;    // next
             b = *s;    // read byte into the register B
             b &= 0b00111111;  // 10xxxxxx => 00xxxxxx
-            eb = b;
-            eb <<= 6;  // 00000000_10xxxxxx => 0010xxxx_xx000000
-            ax |= eb;  // xxxx0000_00000000 | 0000xxxx_xx000000 => xxxxxxxx_xx000000
+            bx = b;
+            bx <<= 6;  // 00000000_10xxxxxx => 0010xxxx_xx000000
+            ax |= bx;  // xxxx0000_00000000 | 0000xxxx_xx000000 => xxxxxxxx_xx000000
 
             s +=1;     // next
             b = *s;    // read byte into the register B
@@ -666,7 +667,7 @@ version ( Win64 )
 
         // 4-Byte: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
         a <<= 1;
-        if ( a > 0 )    // highest bit is 0. May be Sign flag (SF) == 0 ( after arithmetic )
+        if ( a > 0 )   // highest bit is 0. May be Sign flag (SF) == 0 ( after arithmetic )
         {
             ax = a;    // register AX
             ax <<= 8;  // 00000000_0xxx.... => 0xxx0000_00000000
@@ -674,9 +675,9 @@ version ( Win64 )
             s += 1;    // next
             b = *s;    // read byte into the register EB
             b &= 0b00111111;  // 10xxxxxx => 00xxxxxx
-            eb = b;
-            eb <<= 6;  // 00000000_10xxxxxx => 0010xxxx_xx000000
-            ax |= eb;  // xxxx0000_00000000 | 0000xxxx_xx000000 => xxxxxxxx_xx000000
+            bx = b;
+            bx <<= 6;  // 00000000_10xxxxxx => 0010xxxx_xx000000
+            ax |= bx;  // xxxx0000_00000000 | 0000xxxx_xx000000 => xxxxxxxx_xx000000
 
             s +=1;     // next
             b = *s;    // register B
@@ -698,18 +699,10 @@ version ( Win64 )
 
         // invalid
         {
-            dc = 0;  // invalid
-            s += 1;    // skip this byte
+            dc = '�';  // invalid
+            s += 1;     // skip this byte
             return s;
         }
-
-        
-        //if ( dc >= 0b1101_1000_0000_0000 && dc <= 0b1101_1111_1111_1111 )
-        //{
-        //    dc = 0; // surrogate half
-        //}
-
-        //return s;
     }
 
 
@@ -763,14 +756,6 @@ version ( Win64 )
             s += 4;    // restore position
             return s;
         }
-
-        
-        //if ( dc >= 0b1101_1000_0000_0000 && dc <= 0b1101_1111_1111_1111 )
-        //{
-        //    dc = 0; // surrogate half
-        //}
-
-        //return s;
     }
 
 
@@ -814,13 +799,5 @@ version ( Win64 )
         {
             return s;
         }
-
-        
-        //if ( dc >= 0b1101_1000_0000_0000 && dc <= 0b1101_1111_1111_1111 )
-        //{
-        //    dc = 0; // surrogate half
-        //}
-
-        //return s;
     }
 }
