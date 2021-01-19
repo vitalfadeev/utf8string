@@ -629,9 +629,9 @@ version ( Win64 )
         {
             ax = a;    // register AX
             ax <<= 6;  // 00000000_0xxxxx.. => 000xxxxx_00000000
-            s += 1;    // next
-            b = *s;    // read byte into the register B
-            b &= 0b00111111;  // 10xxxxxx => 00xxxxxx
+            s  += 1;   // next
+            b  = *s;   // read byte into the register B
+            b  &= 0b00111111;  // 10xxxxxx => 00xxxxxx
             ax |= b;
 
             dc = ax;
@@ -647,16 +647,16 @@ version ( Win64 )
             ax = a;    // register AX
             ax <<= 9;  // 00000000_0xxxx... => xxxx0000_00000000
 
-            s += 1;    // next
-            b = *s;    // read byte into the register B
-            b &= 0b00111111;  // 10xxxxxx => 00xxxxxx
+            s  += 1;   // next
+            b  = *s;   // read byte into the register B
+            b  &= 0b00111111;  // 10xxxxxx => 00xxxxxx
             bx = b;
             bx <<= 6;  // 00000000_10xxxxxx => 0010xxxx_xx000000
             ax |= bx;  // xxxx0000_00000000 | 0000xxxx_xx000000 => xxxxxxxx_xx000000
 
-            s +=1;     // next
-            b = *s;    // read byte into the register B
-            b &= 0b00111111;  // 10xxxxxx => 00xxxxxx
+            s  +=1;    // next
+            b  = *s;   // read byte into the register B
+            b  &= 0b00111111;  // 10xxxxxx => 00xxxxxx
             ax |= b;   // xxxxxxxx_xx000000 | 00xxxxxx => xxxxxxxx_xxxxxxxx
 
             dc = ax;
@@ -672,23 +672,23 @@ version ( Win64 )
             ax = a;    // register AX
             ax <<= 8;  // 00000000_0xxx.... => 0xxx0000_00000000
 
-            s += 1;    // next
-            b = *s;    // read byte into the register EB
-            b &= 0b00111111;  // 10xxxxxx => 00xxxxxx
+            s  += 1;   // next
+            b  = *s;   // read byte into the register EB
+            b  &= 0b00111111;  // 10xxxxxx => 00xxxxxx
             bx = b;
             bx <<= 6;  // 00000000_10xxxxxx => 0010xxxx_xx000000
             ax |= bx;  // xxxx0000_00000000 | 0000xxxx_xx000000 => xxxxxxxx_xx000000
 
-            s +=1;     // next
-            b = *s;    // register B
-            b &= 0b00111111;  // 10xxxxxx => 00xxxxxx
+            s  += 1;   // next
+            b  = *s;   // register B
+            b  &= 0b00111111;  // 10xxxxxx => 00xxxxxx
             ax |= b;   // xxxxxxxx_xx000000 | 00xxxxxx => xxxxxxxx_xxxxxxxx
 
             eax = ax;
             eax <<= 6; // 00000000_xxxxxxxx_xxxxxxxx => 00xxxxxx_xxxxxxxx_xx000000
-            s +=1;     // next
-            b = *s;    // register B
-            b &= 0b00111111;  // 10xxxxxx => 00xxxxxx
+            s   +=1;   // next
+            b   = *s;  // register B
+            b   &= 0b00111111;  // 10xxxxxx => 00xxxxxx
             eax |= b;  // 00xxxxxx_xxxxxxxx_xx000000 | 00xxxxxx => 00xxxxxx_xxxxxxxx_xxxxxxxx
 
             dc = eax;
@@ -753,7 +753,7 @@ version ( Win64 )
 
         // invalid
         {
-            s += 4;    // restore position
+            s += 4 - 1;    // restore position. skip 1 byte
             return s;
         }
     }
@@ -797,6 +797,7 @@ version ( Win64 )
 
         // invalid
         {
+            s += 1;  // skip 1 byte
             return s;
         }
     }
