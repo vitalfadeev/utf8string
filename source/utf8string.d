@@ -21,7 +21,7 @@ struct UTF8String
 
 /+
     /** Prev char position in UTF8 string */
-    size_t prevPos( size_t pos )
+    size_t nextPosReverse( size_t pos )
     {
         // (x & 0xc0) == 0x80
         //
@@ -100,7 +100,7 @@ struct UTF8String
     }
 
     ///** Prev char position in UTF8 string */
-    //size_t prevPosG( size_t pos )
+    //size_t nextPosReverseG( size_t pos )
     //{
     //    import std.utf   : encode;
     //    import std.uni   : Grapheme;
@@ -252,7 +252,7 @@ mixin template UTF8StringBidirectionalRange()
     E back()
     {
         auto end = ( cast( char* ) s.ptr ) + s.length;
-        auto newPtr = prevPos( end );
+        auto newPtr = nextPosReverse( end );
         auto l = end - newPtr;
         return s[ $ - l .. $ ];
     }
@@ -269,7 +269,7 @@ mixin template UTF8StringBidirectionalRange()
     void popBack()
     {
         auto end = ( cast( char* ) s.ptr ) + s.length;
-        auto newPtr = prevPos( end );
+        auto newPtr = nextPosReverse( end );
         auto l = end - newPtr;
         s.length -= l;
     }
@@ -628,7 +628,7 @@ version ( Win64 )
         if ( a > 0 )   // highest bit is 0. May be Sign flag (SF) == 0 ( after arithmetic )
         {
             ax = a;    // register AX
-            ax <<= 6;  // 00000000_0xxxxx.. => 000xxxxx_00000000
+            ax <<= 4;  // 00000000_0xxxxx.. => 000xxxxx_00000000
             s  += 1;   // next
             b  = *s;   // read byte into the register B
             b  &= 0b00111111;  // 10xxxxxx => 00xxxxxx
@@ -707,16 +707,16 @@ version ( Win64 )
 
 
     /** Decode UTF8 string in reverse direction */
-    char* rdecode( char* s, ref dchar dc )
+    char* decodeReverse( char* s, ref dchar dc )
     {
-        s = prevPos( s );
+        s = nextPosReverse( s );
         decode( s, dc );
         return s;
     }
 
 
     /** */
-    char* prevPos( char* s )
+    char* nextPosReverse( char* s )
     {
         s -= 1;
         byte a = *s;  // register A
@@ -801,4 +801,183 @@ version ( Win64 )
             return s;
         }
     }
+}
+
+
+///
+unittest
+{
+    string src;
+
+    // ASCII
+    src = "Abc";
+
+    auto utf8String = UTF8String( src );
+
+    foreach ( i, s; utf8String )
+    {
+        switch ( i )
+        {
+            case 0: assert( s == "A" ); break;
+            case 1: assert( s == "b" ); break;
+            case 2: assert( s == "c" ); break;
+            default: assert( 0 );
+        }
+    }
+
+    // Unicode Forward
+    src = "ᐅᐅᐅ";
+
+    auto utf8String2 = UTF8String( src );
+
+    foreach ( i, s; utf8String2 )
+    {
+        switch ( i )
+        {
+            case 0: assert( s == "ᐅ" ); break;
+            case 1: assert( s == "ᐅ" ); break;
+            case 2: assert( s == "ᐅ" ); break;
+            default: assert( 0 );
+        }
+    }
+
+    // Unicode Backward
+    src = "ᐅᐅᐅ";
+
+    auto utf8String3 = UTF8String( src );
+
+    foreach_reverse ( i, s; utf8String3 )
+    {
+        switch ( i )
+        {
+            case 0: assert( s == "ᐅ" ); break;
+            case 3: assert( s == "ᐅ" ); break;
+            case 6: assert( s == "ᐅ" ); break;
+            default: assert( 0 );
+        }
+    }
+
+    // decode UTF8 1-Byte symbols
+    src = "Abc";
+    dchar dc;
+    char* ptr;
+    ptr = cast( char* ) src.ptr;
+    ptr = decode( ptr, dc );
+    assert( dc == 'A' );
+    assert( ptr == src.ptr + 1 );
+    ptr = decode( ptr, dc );
+    assert( dc == 'b' );
+    assert( ptr == src.ptr + 2 );
+
+    // decode 2-Byte symbols
+    src = "Жук";
+    ptr = cast( char* ) src.ptr;
+    ptr = decode( ptr, dc );
+    assert( dc == 'Ж' );
+    assert( ptr == src.ptr + 2 );
+    ptr = decode( ptr, dc );
+    assert( dc == 'у' );
+    assert( ptr == src.ptr + 4 );
+
+    // decode 3-Byte symbols
+    src = "ᐅᐅᐅ";
+    ptr = cast( char* ) src.ptr;
+    ptr = decode( ptr, dc );
+    assert( dc == 'ᐅ' );
+    assert( ptr == src.ptr + 3 );
+    ptr = decode( ptr, dc );
+    assert( dc == 'ᐅ' );
+    assert( ptr == src.ptr + 6 );
+
+    // nextPosReverse. 1-Byte
+    src = "Abc";
+    ptr = cast( char* ) src.ptr;
+    ptr = nextPosReverse( ptr + 2 );  // from 'c'
+    assert( *ptr == 'b' );
+    assert( ptr == src.ptr + 1 );
+    ptr = nextPosReverse( ptr );
+    assert( *ptr == 'A' );
+    assert( ptr == src.ptr );
+
+    // nextPosReverse. 2-Byte
+    src = "Жук";
+    ptr = cast( char* ) src.ptr;
+    ptr = nextPosReverse( ptr + 4 );  // from 'к'
+    assert( ptr[ 0 .. 2 ] == [ 0xD1, 0x83 ] );  // 'у'
+    assert( ptr == src.ptr + 2 );
+    ptr = nextPosReverse( ptr );
+    assert( ptr[ 0 .. 2 ] == [ 0xD0, 0x96 ] );  // 'Ж'
+    assert( ptr == src.ptr );
+
+    // nextPosReverse. 3-Byte
+    src = "ᐅᐅᐅ";
+    ptr = cast( char* ) src.ptr;
+    ptr = nextPosReverse( ptr + 6 );
+    assert( dc == 'ᐅ' );
+    assert( ptr == src.ptr + 3 );
+    ptr = nextPosReverse( ptr );
+    assert( dc == 'ᐅ' );
+    assert( ptr == src.ptr );
+
+    // nextPos. 1-Byte
+    src = "Abc";
+    ptr = cast( char* ) src.ptr;
+    assert( *ptr == 'A' );
+    ptr = nextPos( ptr );
+    assert( *ptr == 'b' );
+    assert( ptr == src.ptr + 1 );
+    ptr = nextPos( ptr );
+    assert( *ptr == 'c' );
+    assert( ptr == src.ptr + 2 );
+
+    // nextPos. 2-Byte
+    src = "Жук";
+    ptr = cast( char* ) src.ptr;
+    assert( ptr[ 0 .. 2 ] == [ 0xD0, 0x96 ] );  // 'Ж'
+    ptr = nextPos( ptr );
+    assert( ptr[ 0 .. 2 ] == [ 0xD1, 0x83 ] );  // 'у'
+    assert( ptr == src.ptr + 2 );
+    ptr = nextPos( ptr );
+    assert( ptr[ 0 .. 2 ] == [ 0xD0, 0xBA ] );  // 'к'
+    assert( ptr == src.ptr + 4 );
+
+    // nextPos. 3-Byte
+    src = "ᐅᐅᐅ";
+    ptr = cast( char* ) src.ptr;
+    ptr = nextPos( ptr );
+    assert( dc == 'ᐅ' );
+    assert( ptr == src.ptr + 3 );
+    ptr = nextPos( ptr );
+    assert( dc == 'ᐅ' );
+    assert( ptr == src.ptr + 6 );
+
+    // decodeReverse. 1-Byte
+    src = "Abc";
+    ptr = cast( char* ) src.ptr;
+    ptr = decodeReverse( ptr + 2, dc );  // at "c"
+    assert( dc == 'b' );
+    assert( ptr == src.ptr + 1 );
+    ptr = decodeReverse( ptr, dc );
+    assert( dc == 'A' );
+    assert( ptr == src.ptr );
+
+    // decodeReverse. 2-Byte
+    src = "Жук";
+    ptr = cast( char* ) src.ptr;
+    ptr = decodeReverse( ptr + 4, dc );  // at "к"
+    assert( dc == 'у' );
+    assert( ptr == src.ptr + 2 );
+    ptr = decodeReverse( ptr, dc );
+    assert( dc == 'Ж' );
+    assert( ptr == src.ptr );
+
+    // decodeReverse. 3-Byte
+    src = "ᐅᐅᐅ";
+    ptr = cast( char* ) src.ptr;
+    ptr = decodeReverse( ptr + 6, dc );
+    assert( dc == 'ᐅ' );
+    assert( ptr == src.ptr + 3 );
+    ptr = decodeReverse( ptr, dc );
+    assert( dc == 'ᐅ' );
+    assert( ptr == src.ptr );
 }
